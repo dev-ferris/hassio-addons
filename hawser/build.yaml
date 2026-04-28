@@ -1,0 +1,10 @@
+build_from:
+  aarch64: ghcr.io/hassio-addons/base/aarch64:16.0.0
+  amd64: ghcr.io/hassio-addons/base/amd64:16.0.0
+labels:
+  org.opencontainers.image.title: Home Assistant Add-on - Hawser
+  org.opencontainers.image.description: Lightweight Go agent enabling Dockhand to manage Docker hosts
+  org.opencontainers.image.source: https://github.com/dev-ferris/hassio-addons
+  org.opencontainers.image.licenses: MIT
+args:
+  HAWSER_VERSION: latest

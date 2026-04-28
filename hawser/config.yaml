@@ -1,0 +1,58 @@
+name: Hawser
+version: "0.1.0"
+slug: hawser
+description: Lightweight Go agent enabling Dockhand to manage Docker hosts
+url: https://github.com/Finsys/hawser
+arch:
+  - aarch64
+  - amd64
+init: false
+docker_api: true
+hassio_api: true
+full_access: true
+host_network: false
+udev: true
+backup_exclude:
+  - stacks
+map:
+  - share:rw
+  - ssl
+ports:
+  2376/tcp: 2376
+ports_description:
+  2376/tcp: Hawser standard mode listener
+options:
+  PORT: "2376"
+  LOG_LEVEL: info
+  BIND_ADDRESS: 0.0.0.0
+  TOKEN: ""
+  AGENT_NAME: ""
+  DOCKHAND_SERVER_URL: ""
+  TLS_CERT: ""
+  TLS_KEY: ""
+  CA_CERT: ""
+  TLS_SKIP_VERIFY: false
+  HEARTBEAT_INTERVAL: "30"
+  REQUEST_TIMEOUT: "30"
+  RECONNECT_DELAY: "1"
+  MAX_RECONNECT_DELAY: "60"
+  env_vars: []
+schema:
+  PORT: int(1,65535)?
+  LOG_LEVEL: list(debug|info|warn|error)?
+  BIND_ADDRESS: str?
+  TOKEN: password?
+  AGENT_NAME: str?
+  DOCKHAND_SERVER_URL: str?
+  TLS_CERT: str?
+  TLS_KEY: str?
+  CA_CERT: str?
+  TLS_SKIP_VERIFY: bool?
+  HEARTBEAT_INTERVAL: int(1,3600)?
+  REQUEST_TIMEOUT: int(1,3600)?
+  RECONNECT_DELAY: int(1,3600)?
+  MAX_RECONNECT_DELAY: int(1,3600)?
+  env_vars:
+    - name: match(^[A-Za-z0-9_]+$)
+      value: str?
+image: ghcr.io/dev-ferris/hawser-{arch}

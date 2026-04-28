@@ -1,0 +1,53 @@
+configuration:
+  PORT:
+    name: Listening port
+    description: >-
+      TCP port the agent listens on in Standard mode. Ignored in Edge mode.
+  LOG_LEVEL:
+    name: Log level
+    description: One of debug, info, warn or error.
+  BIND_ADDRESS:
+    name: Bind address
+    description: Address the agent binds to in Standard mode.
+  TOKEN:
+    name: Authentication token
+    description: >-
+      Shared secret used to authenticate Dockhand. Required in Edge mode and
+      strongly recommended in Standard mode.
+  AGENT_NAME:
+    name: Agent name
+    description: Human-readable name reported to Dockhand. Defaults to the hostname.
+  DOCKHAND_SERVER_URL:
+    name: Dockhand server URL
+    description: >-
+      WebSocket URL of the Dockhand server. Setting this value switches the
+      agent into Edge mode.
+  TLS_CERT:
+    name: TLS certificate
+    description: Path to the server certificate, typically under /ssl.
+  TLS_KEY:
+    name: TLS key
+    description: Path to the server private key, typically under /ssl.
+  CA_CERT:
+    name: CA certificate
+    description: CA certificate used to verify the Dockhand server in Edge mode.
+  TLS_SKIP_VERIFY:
+    name: Skip TLS verification
+    description: Disable TLS verification. Insecure - use only for testing.
+  HEARTBEAT_INTERVAL:
+    name: Heartbeat interval
+    description: Keepalive interval in seconds.
+  REQUEST_TIMEOUT:
+    name: Request timeout
+    description: Maximum duration of a single request, in seconds.
+  RECONNECT_DELAY:
+    name: Reconnect delay
+    description: Initial reconnect delay in seconds (Edge mode).
+  MAX_RECONNECT_DELAY:
+    name: Maximum reconnect delay
+    description: Upper bound for the exponential reconnect backoff, in seconds.
+  env_vars:
+    name: Additional environment variables
+    description: Extra environment variables forwarded to the Hawser process.
+network:
+  2376/tcp: Hawser standard mode listener
