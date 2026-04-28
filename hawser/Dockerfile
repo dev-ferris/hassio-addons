@@ -29,7 +29,7 @@ RUN chmod a+x /etc/services.d/hawser/run \
               /etc/services.d/hawser/finish
 
 ENV PORT=2376 \
-    DOCKER_SOCKET=/var/run/docker.sock \
+    DOCKER_SOCKET=/run/docker.sock \
     STACKS_DIR=/data/stacks
 
 EXPOSE 2376
