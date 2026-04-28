@@ -1,83 +1,89 @@
 # dev-ferris Home Assistant Add-ons
 
-Dieses Repository ist eine Sammlung von Add-ons für [Home Assistant](https://www.home-assistant.io/)
-und kann direkt als zusätzliche Add-on-Quelle (Repository) im Home Assistant
-Add-on Store eingebunden werden.
+[![Builder][builder-shield]][builder-workflow]
+[![License: MIT][license-shield]](LICENSE)
 
-## Repository in Home Assistant einbinden
+This repository is a collection of add-ons for [Home Assistant](https://www.home-assistant.io/)
+and can be added directly as an additional add-on source (repository) in the
+Home Assistant Add-on Store.
 
-Damit die Add-ons aus diesem Repository im Add-on Store erscheinen, muss die
-Repository-URL einmalig in Home Assistant hinterlegt werden.
+## Add the repository to Home Assistant
 
-### Variante 1: Per Klick (My Home Assistant Link)
+To make the add-ons in this repository show up in the Add-on Store, the
+repository URL has to be registered in Home Assistant once.
 
-Wer einen My-Home-Assistant-Link nutzen möchte, kann diesen Link öffnen:
+### Option 1: One-click (My Home Assistant link)
 
-<https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fdev-ferris%2Fhassio-addons>
+Open the following link and Home Assistant will ask whether the repository
+should be added — just confirm:
 
-Home Assistant fragt anschließend, ob das Repository hinzugefügt werden soll –
-einfach bestätigen.
+[![Open your Home Assistant instance and show the add add-on repository dialog with a specific repository URL pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fdev-ferris%2Fhassio-addons)
 
-### Variante 2: Manuell über die Oberfläche
+### Option 2: Manually via the UI
 
-1. In Home Assistant **Einstellungen → Add-ons → Add-on Store** öffnen.
-2. Oben rechts auf das Drei-Punkte-Menü (**⋮**) klicken und **Repositorys**
-   auswählen.
-3. Folgende URL einfügen und auf **Hinzufügen** klicken:
+1. In Home Assistant, open **Settings → Add-ons → Add-on Store**.
+2. Click the three-dot menu (**⋮**) in the top right corner and select
+   **Repositories**.
+3. Paste the following URL and click **Add**:
 
    ```
    https://github.com/dev-ferris/hassio-addons
    ```
 
-4. Den Dialog schließen. Im Add-on Store erscheint nun ein neuer Abschnitt
-   **dev-ferris Home Assistant Add-ons** mit allen verfügbaren Add-ons aus
-   diesem Repository.
+4. Close the dialog. A new section called **dev-ferris Home Assistant Add-ons**
+   appears in the Add-on Store with all add-ons available from this repository.
 
-> **Hinweis:** Das Einbinden eines Repositorys setzt voraus, dass der Home
-> Assistant **Supervisor** läuft (z. B. Home Assistant OS oder Home Assistant
-> Supervised). Auf reinen Home-Assistant-Container- oder Core-Installationen
-> steht der Add-on Store nicht zur Verfügung.
+> **Note:** Adding a repository requires the Home Assistant **Supervisor**
+> (e.g. Home Assistant OS or Home Assistant Supervised). The Add-on Store is
+> not available on Home Assistant Container or Core installations.
 
-## Add-on installieren
+## Install an add-on
 
-Nachdem das Repository eingebunden ist, lassen sich die einzelnen Add-ons wie
-gewohnt installieren:
+Once the repository is registered, the individual add-ons can be installed
+like any other add-on:
 
-1. **Einstellungen → Add-ons → Add-on Store** öffnen.
-2. Zum Abschnitt **dev-ferris Home Assistant Add-ons** scrollen.
-3. Das gewünschte Add-on auswählen und auf **Installieren** klicken.
-4. Auf dem Reiter **Konfiguration** die Optionen anpassen
-   (siehe README des jeweiligen Add-ons).
-5. Auf dem Reiter **Info** das Add-on starten und nach Bedarf
-   *Beim Booten starten* sowie *Watchdog* aktivieren.
+1. Open **Settings → Add-ons → Add-on Store**.
+2. Scroll to the **dev-ferris Home Assistant Add-ons** section.
+3. Pick the desired add-on and click **Install**.
+4. On the **Configuration** tab, adjust the options
+   (see the README of the respective add-on).
+5. On the **Info** tab, start the add-on and optionally enable
+   *Start on boot* and *Watchdog*.
 
-## Verfügbare Add-ons
+## Available add-ons
 
-| Add-on | Beschreibung | Dokumentation |
-| --- | --- | --- |
-| **Hawser** | Schlanker Go-Agent, mit dem [Dockhand](https://github.com/Finsys/dockhand) Docker-Hosts hinter Firewalls, NATs oder in Cluster-Setups verwalten kann. | [hawser/README.md](hawser/README.md) |
+| Add-on | Description | Documentation | Build status |
+| --- | --- | --- | --- |
+| **Hawser** | Lightweight Go agent that lets [Dockhand](https://github.com/Finsys/dockhand) manage Docker hosts behind firewalls, NATs or in cluster setups. | [hawser/README.md](hawser/README.md) | [![Builder][builder-shield]][builder-workflow] |
 
-Die Konfigurationsoptionen und alle weiteren Details sind in der README des
-jeweiligen Add-ons beschrieben.
+The configuration options and any further details are documented in the
+README of the respective add-on.
+
+The published container images are hosted on the GitHub Container Registry
+under [`ghcr.io/dev-ferris`](https://github.com/dev-ferris?tab=packages).
 
 ## Updates
 
-Aktualisierungen werden automatisch im Add-on Store angezeigt, sobald eine neue
-Version dieses Repositorys veröffentlicht wird. Über **Einstellungen → Add-ons**
-kann das Update mit einem Klick eingespielt werden.
+Updates appear automatically in the Add-on Store as soon as a new version of
+this repository is published. The update can be applied with a single click
+under **Settings → Add-ons**.
 
 ## Support
 
-- Probleme mit den Add-ons aus diesem Repository bitte als Issue unter
-  <https://github.com/dev-ferris/hassio-addons/issues> melden.
-- Probleme mit der jeweils zugrunde liegenden Software (z. B. Hawser selbst)
-  gehören in das jeweilige Upstream-Projekt.
+- Issues with the add-ons in this repository should be reported at
+  <https://github.com/dev-ferris/hassio-addons/issues>.
+- Issues with the underlying upstream software (e.g. Hawser itself) belong in
+  the respective upstream project.
 
-## Lizenz
+## License
 
-Dieses Repository steht unter der [MIT-Lizenz](LICENSE).
+This repository is licensed under the [MIT License](LICENSE).
 
-## Danksagung
+## Acknowledgements
 
-Dieses Repository wurde mit Unterstützung von [Claude](https://claude.com/claude-code),
-dem KI-Assistenten von Anthropic, erstellt.
+This repository was created with the help of
+[Claude](https://claude.com/claude-code), Anthropic's AI assistant.
+
+[builder-shield]: https://github.com/dev-ferris/hassio-addons/actions/workflows/builder.yaml/badge.svg
+[builder-workflow]: https://github.com/dev-ferris/hassio-addons/actions/workflows/builder.yaml
+[license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg
