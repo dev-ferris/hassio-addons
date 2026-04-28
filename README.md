@@ -53,7 +53,8 @@ like any other add-on:
 
 | Add-on | Description | Documentation | Build status |
 | --- | --- | --- | --- |
-| **Hawser** | [![Builder][builder-shield]][builder-workflow] Lightweight Go agent that lets [Dockhand](https://github.com/Finsys/dockhand) manage Docker hosts behind firewalls, NATs or in cluster setups. | [hawser/README.md](hawser/README.md) | [![Builder][builder-shield]][builder-workflow] |
+| **Hawser** | [![Builder][builder-shield]][builder-workflow] 
+Lightweight Go agent that lets [Dockhand](https://github.com/Finsys/dockhand) manage Docker hosts behind firewalls, NATs or in cluster setups. | [hawser/README.md](hawser/README.md) | [![Builder][builder-shield]][builder-workflow] |
 
 The configuration options and any further details are documented in the
 README of the respective add-on.
