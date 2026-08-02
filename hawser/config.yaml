@@ -1,30 +1,30 @@
+---
 name: Hawser
-version: "0.1.0"
+version: "0.2.46"
 slug: hawser
 description: Lightweight Go agent enabling Dockhand to manage Docker hosts
-url: https://github.com/Finsys/hawser
+url: https://github.com/dev-ferris/hassio-addons/tree/main/hawser
+image: ghcr.io/dev-ferris/hawser-{arch}
 arch:
   - aarch64
   - amd64
 init: false
+# Mounts /run/docker.sock into the add-on. This is all Hawser needs; it does
+# not require full_access (privileged), the Supervisor API or udev.
 docker_api: true
-hassio_api: true
-full_access: true
-host_network: false
-udev: true
-backup_exclude:
-  - stacks
+# Liveness is reported through the Docker HEALTHCHECK in the Dockerfile, which
+# the Supervisor feeds into the add-on Watchdog.
 map:
-  - share:rw
-  - ssl
+  - type: ssl
+    read_only: true
 ports:
   2376/tcp: 2376
 ports_description:
-  2376/tcp: Hawser standard mode listener
+  2376/tcp: Hawser listener (clear the host port when using Edge mode)
 options:
-  PORT: "2376"
+  PORT: 2376
   LOG_LEVEL: info
-  BIND_ADDRESS: 0.0.0.0
+  BIND_ADDRESS: "0.0.0.0"
   TOKEN: ""
   AGENT_NAME: ""
   DOCKHAND_SERVER_URL: ""
@@ -32,13 +32,15 @@ options:
   TLS_KEY: ""
   CA_CERT: ""
   TLS_SKIP_VERIFY: false
-  HEARTBEAT_INTERVAL: "30"
-  REQUEST_TIMEOUT: "30"
-  RECONNECT_DELAY: "1"
-  MAX_RECONNECT_DELAY: "60"
+  ALLOW_INSECURE_NO_AUTH: false
+  HEARTBEAT_INTERVAL: 30
+  REQUEST_TIMEOUT: 30
+  RECONNECT_DELAY: 1
+  MAX_RECONNECT_DELAY: 60
+  WELCOME_TIMEOUT: 30
   env_vars: []
 schema:
-  PORT: int(1,65535)?
+  PORT: port
   LOG_LEVEL: list(debug|info|warn|error)?
   BIND_ADDRESS: str?
   TOKEN: password?
@@ -48,11 +50,12 @@ schema:
   TLS_KEY: str?
   CA_CERT: str?
   TLS_SKIP_VERIFY: bool?
+  ALLOW_INSECURE_NO_AUTH: bool?
   HEARTBEAT_INTERVAL: int(1,3600)?
   REQUEST_TIMEOUT: int(1,3600)?
   RECONNECT_DELAY: int(1,3600)?
   MAX_RECONNECT_DELAY: int(1,3600)?
+  WELCOME_TIMEOUT: int(1,3600)?
   env_vars:
-    - name: match(^[A-Za-z0-9_]+$)
+    - name: match(^[A-Za-z_][A-Za-z0-9_]*$)
       value: str?
-image: ghcr.io/dev-ferris/hawser-{arch}

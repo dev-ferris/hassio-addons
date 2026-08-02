@@ -1,0 +1,13 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Home Assistant Add-on: Hawser
+# Runs the Hawser agent
+#
+# All configuration is mapped to environment variables by the init-hawser
+# oneshot, which runs before this service.
+# ==============================================================================
+
+bashio::log.info "Starting Hawser agent..."
+
+exec /usr/local/bin/hawser

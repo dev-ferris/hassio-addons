@@ -1,0 +1,36 @@
+#!/command/with-contenv bash
+# shellcheck shell=bash
+# ==============================================================================
+# Home Assistant Add-on: Hawser
+# Liveness probe for the Docker HEALTHCHECK directive
+#
+# Runs with the s6 container environment, so it sees the values init-hawser
+# derived from the add-on options and probes the port that is really in use.
+# Hawser serves /_hawser/health without authentication in both Standard and
+# Edge mode.
+# ==============================================================================
+set -o pipefail
+
+declare host="${BIND_ADDRESS:-127.0.0.1}"
+declare port="${PORT:-2376}"
+declare scheme="http"
+declare -a curl_args=(--fail --silent --show-error --max-time 5 --output /dev/null)
+
+# A wildcard bind is not an address we can connect to; use loopback instead.
+if [[ -z "${host}" || "${host}" == "0.0.0.0" || "${host}" == "::" ]]; then
+    host="127.0.0.1"
+fi
+
+# IPv6 literals need brackets in a URL
+if [[ "${host}" == *:* ]]; then
+    host="[${host}]"
+fi
+
+if [[ -n "${TLS_CERT:-}" ]]; then
+    scheme="https"
+    # The certificate is issued for the name Dockhand connects to, not for this
+    # loopback probe, so verification is skipped for the local liveness check.
+    curl_args+=(--insecure)
+fi
+
+exec curl "${curl_args[@]}" "${scheme}://${host}:${port}/_hawser/health"

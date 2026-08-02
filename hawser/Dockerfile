@@ -1,38 +1,51 @@
 ARG BUILD_FROM
-ARG HAWSER_VERSION=latest
+# Pinned by build.yaml. No default on purpose: an unpinned "latest" would make
+# the image non-reproducible and pull in untested upstream changes.
+ARG HAWSER_VERSION
 
-# Pull the upstream Hawser image to extract the static Go binary
+# Pull the upstream Hawser image to extract the static Go binary.
+# The binary is built with CGO_ENABLED=0, so it runs unmodified on musl/Alpine.
+# hadolint ignore=DL3006
 FROM ghcr.io/finsys/hawser:${HAWSER_VERSION} AS upstream
 
-# Build on the Home Assistant base image (s6-overlay + bashio)
+# Build on the Home Assistant add-on base image (s6-overlay v3 + bashio)
+# hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Copy the Hawser binary from the upstream image
-COPY --from=upstream /usr/local/bin/hawser /usr/local/bin/hawser
-
-# Install Docker CLI + tzdata + ca-certificates so the agent can issue
-# compose/swarm commands and reach the Dockhand server over TLS
+# Docker CLI + compose plugin so the agent can drive containers and stacks.
+# ca-certificates is needed to verify the Dockhand server in Edge mode.
+# bash, curl, jq and tzdata already ship with the add-on base image.
 RUN apk add --no-cache \
         ca-certificates \
         docker-cli \
-        docker-cli-compose \
-        tzdata \
-        wget \
-    && chmod +x /usr/local/bin/hawser \
+        docker-cli-compose
+
+# Copy the Hawser binary from the upstream image
+COPY --from=upstream /usr/local/bin/hawser /usr/local/bin/hawser
+
+# s6-overlay service definitions
+COPY rootfs/ /
+
+RUN chmod a+x \
+        /usr/local/bin/hawser \
+        /usr/bin/hawser-health \
+        /etc/s6-overlay/s6-rc.d/hawser/run \
+        /etc/s6-overlay/s6-rc.d/hawser/finish \
+        /etc/s6-overlay/s6-rc.d/init-hawser/run \
     && mkdir -p /data/stacks
 
-# Service supervisor scripts
-COPY rootfs/ /
-RUN chmod a+x /etc/services.d/hawser/run \
-              /etc/services.d/hawser/finish
-
-ENV PORT=2376 \
-    DOCKER_SOCKET=/run/docker.sock \
+ENV DOCKER_SOCKET=/run/docker.sock \
     STACKS_DIR=/data/stacks
 
 EXPOSE 2376
+
+# The Supervisor turns an unhealthy container into an add-on restart when the
+# user enables the Watchdog. The probe reads the s6 container environment, so
+# it follows the configured PORT, BIND_ADDRESS and TLS settings.
+HEALTHCHECK --start-period=30s --interval=30s --timeout=10s --retries=3 \
+    CMD ["/usr/bin/hawser-health"]
 
 ARG BUILD_ARCH
 ARG BUILD_DATE
@@ -50,6 +63,7 @@ LABEL \
     org.opencontainers.image.title="${BUILD_NAME}" \
     org.opencontainers.image.description="${BUILD_DESCRIPTION}" \
     org.opencontainers.image.source="https://github.com/${BUILD_REPOSITORY}" \
+    org.opencontainers.image.documentation="https://github.com/${BUILD_REPOSITORY}/blob/main/hawser/DOCS.md" \
     org.opencontainers.image.licenses="MIT" \
     org.opencontainers.image.created="${BUILD_DATE}" \
     org.opencontainers.image.revision="${BUILD_REF}" \

@@ -1,10 +1,15 @@
+---
 build_from:
-  aarch64: ghcr.io/hassio-addons/base/aarch64:16.0.0
-  amd64: ghcr.io/hassio-addons/base/amd64:16.0.0
+  aarch64: ghcr.io/hassio-addons/base/aarch64:21.0.1
+  amd64: ghcr.io/hassio-addons/base/amd64:21.0.1
 labels:
   org.opencontainers.image.title: Home Assistant Add-on - Hawser
   org.opencontainers.image.description: Lightweight Go agent enabling Dockhand to manage Docker hosts
   org.opencontainers.image.source: https://github.com/dev-ferris/hassio-addons
+  org.opencontainers.image.documentation: https://github.com/dev-ferris/hassio-addons/blob/main/hawser/DOCS.md
   org.opencontainers.image.licenses: MIT
 args:
-  HAWSER_VERSION: latest
+  # Pinned on purpose: "latest" makes builds non-reproducible and silently
+  # ships upstream changes that were never tested against this add-on.
+  # Keep in sync with `version` in config.yaml.
+  HAWSER_VERSION: "0.2.46"
