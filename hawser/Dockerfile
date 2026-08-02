@@ -30,6 +30,7 @@ COPY rootfs/ /
 
 RUN chmod a+x \
         /usr/local/bin/hawser \
+        /usr/bin/hawser-health \
         /etc/s6-overlay/s6-rc.d/hawser/run \
         /etc/s6-overlay/s6-rc.d/hawser/finish \
         /etc/s6-overlay/s6-rc.d/init-hawser/run \
@@ -39,6 +40,12 @@ ENV DOCKER_SOCKET=/run/docker.sock \
     STACKS_DIR=/data/stacks
 
 EXPOSE 2376
+
+# The Supervisor turns an unhealthy container into an add-on restart when the
+# user enables the Watchdog. The probe reads the s6 container environment, so
+# it follows the configured PORT, BIND_ADDRESS and TLS settings.
+HEALTHCHECK --start-period=30s --interval=30s --timeout=10s --retries=3 \
+    CMD ["/usr/bin/hawser-health"]
 
 ARG BUILD_ARCH
 ARG BUILD_DATE

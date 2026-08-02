@@ -38,9 +38,10 @@ The add-on version now tracks the packaged upstream Hawser version.
 ### Added
 
 - `ALLOW_INSECURE_NO_AUTH` and `WELCOME_TIMEOUT` options.
-- A Watchdog definition, so Home Assistant restarts the add-on if the agent
-  stops answering on its port. Turn it off if you change `PORT` or bind to
-  loopback; the add-on warns when it detects this.
+- A Docker health check that probes the agent's `/_hawser/health` endpoint,
+  following the configured `PORT`, `BIND_ADDRESS` and TLS settings. Home
+  Assistant surfaces it as the add-on state and restarts the add-on when it
+  goes unhealthy and the Watchdog is enabled.
 - The agent ID is generated once and persisted in `/data/agent_id`. Hawser
   otherwise draws a fresh random ID on every start, which made the agent show
   up as a new host in Dockhand after each restart.
@@ -55,6 +56,8 @@ The add-on version now tracks the packaged upstream Hawser version.
   s6-rc.d service definitions, with proper crash handling in `finish`.
 - Numeric options (`PORT`, the intervals and timeouts) are numbers instead of
   strings, and `PORT` uses the `port` schema type.
+- Removed `boot`, `startup` and `host_network` from the configuration; all
+  three only repeated the Supervisor's defaults.
 - Compose stacks in `/data/stacks` are now included in backups instead of
   being excluded.
 - Dropped `tzdata` and `wget` from the image; both are already provided by the

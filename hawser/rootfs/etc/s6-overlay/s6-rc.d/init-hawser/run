@@ -158,13 +158,6 @@ if bashio::config.true 'ALLOW_INSECURE_NO_AUTH'; then
         "any authentication. Anyone who can reach port ${port} controls this host."
 fi
 
-if [[ "${port}" != "2376" ]] || is_loopback "${bind_address}"; then
-    bashio::log.warning \
-        "The add-on Watchdog probes tcp://<add-on>:2376. With PORT=${port} and" \
-        "BIND_ADDRESS=${bind_address} that probe fails - turn the Watchdog off" \
-        "on the add-on's Info tab to avoid restart loops."
-fi
-
 # ==============================================================================
 # Runtime preparation
 # ==============================================================================

@@ -117,11 +117,13 @@ clear message if they do not.
 
 ## Watchdog
 
-The add-on ships a Watchdog definition that probes `tcp://<add-on>:2376`. Turn
-the Watchdog off on the **Info** tab if you change `PORT` or set
-`BIND_ADDRESS` to a loopback address — otherwise the probe fails and Home
-Assistant restarts the add-on in a loop. The add-on logs a warning when it
-detects such a configuration.
+The image carries a Docker health check that asks the agent's
+`/_hawser/health` endpoint whether it can still reach the Docker daemon. It
+follows your configured `PORT`, `BIND_ADDRESS` and TLS settings, so it keeps
+working in every supported configuration, including Edge mode.
+
+Home Assistant shows the result as the add-on's state and, if you enable
+**Watchdog** on the **Info** tab, restarts the add-on when it goes unhealthy.
 
 ## Support
 
