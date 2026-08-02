@@ -11,5 +11,6 @@ labels:
 args:
   # Pinned on purpose: "latest" makes builds non-reproducible and silently
   # ships upstream changes that were never tested against this add-on.
-  # Keep in sync with `version` in config.yaml.
+  # `version` in config.yaml mirrors this, with a fourth component for add-on
+  # changes that do not move the upstream version.
   HAWSER_VERSION: "0.2.46"

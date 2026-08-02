@@ -14,9 +14,11 @@ declare -r AGENT_ID_FILE="/data/agent_id"
 # Environment variables that must never be overridden through `env_vars`.
 # Overwriting these would let a configuration option change how the add-on
 # itself is executed, not just how Hawser behaves.
+# LOG_LEVEL is in this list because bashio reads it as its own numeric log
+# level; see the note further down.
 declare -r -a PROTECTED_ENV=(
     PATH LD_PRELOAD LD_LIBRARY_PATH LD_AUDIT HOME
-    SUPERVISOR_TOKEN HASSIO_TOKEN
+    SUPERVISOR_TOKEN HASSIO_TOKEN LOG_LEVEL
 )
 
 # ------------------------------------------------------------------------------
@@ -60,7 +62,7 @@ function is_loopback() {
 # ==============================================================================
 # Configuration mapping
 # ==============================================================================
-for option in PORT LOG_LEVEL BIND_ADDRESS TOKEN AGENT_NAME DOCKHAND_SERVER_URL \
+for option in PORT BIND_ADDRESS TOKEN AGENT_NAME DOCKHAND_SERVER_URL \
     TLS_CERT TLS_KEY CA_CERT HEARTBEAT_INTERVAL REQUEST_TIMEOUT \
     RECONNECT_DELAY MAX_RECONNECT_DELAY WELCOME_TIMEOUT; do
     publish_option "${option}"
@@ -68,6 +70,16 @@ done
 
 publish_flag 'TLS_SKIP_VERIFY'
 publish_flag 'ALLOW_INSECURE_NO_AUTH'
+
+# LOG_LEVEL is deliberately NOT published under its own name: bashio and the
+# add-on base image read LOG_LEVEL from the container environment as their own
+# numeric log level. A string like "warn" there makes bashio's arithmetic
+# comparison fail with "warn: unbound variable", and because bashio runs with
+# `set -o nounset -o errexit`, every later bashio script dies on its first log
+# call. The hawser service translates this back right before exec.
+if bashio::config.has_value 'LOG_LEVEL'; then
+    publish_env 'HAWSER_LOG_LEVEL' "$(bashio::config 'LOG_LEVEL')"
+fi
 
 declare port bind_address
 port=$(bashio::config 'PORT' '2376')

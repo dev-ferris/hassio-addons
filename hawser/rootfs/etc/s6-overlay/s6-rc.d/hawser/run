@@ -10,4 +10,11 @@
 
 bashio::log.info "Starting Hawser agent..."
 
+# Hawser expects LOG_LEVEL to hold one of debug/info/warn/error, while bashio
+# and the base image use the same variable name for their own numeric log
+# level. Putting a string into the container environment therefore breaks every
+# bashio call after it, so the translation happens here - in the last statement
+# before exec, where no bashio code runs anymore.
+export LOG_LEVEL="${HAWSER_LOG_LEVEL:-info}"
+
 exec /usr/local/bin/hawser

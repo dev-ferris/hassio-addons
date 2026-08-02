@@ -28,13 +28,20 @@ COPY --from=upstream /usr/local/bin/hawser /usr/local/bin/hawser
 # s6-overlay service definitions
 COPY rootfs/ /
 
+# The empty user-bundles.d/user2/contents.d is created here rather than shipped
+# in rootfs/: s6-overlay's own `top` bundle references user2, so it has to exist
+# even though this add-on starts nothing late - but git cannot track an empty
+# directory, and a placeholder file inside contents.d would be read as a
+# service name.
 RUN chmod a+x \
         /usr/local/bin/hawser \
         /usr/bin/hawser-health \
         /etc/s6-overlay/s6-rc.d/hawser/run \
         /etc/s6-overlay/s6-rc.d/hawser/finish \
         /etc/s6-overlay/s6-rc.d/init-hawser/run \
-    && mkdir -p /data/stacks
+    && mkdir -p \
+        /data/stacks \
+        /etc/s6-overlay/user-bundles.d/user2/contents.d
 
 ENV DOCKER_SOCKET=/run/docker.sock \
     STACKS_DIR=/data/stacks

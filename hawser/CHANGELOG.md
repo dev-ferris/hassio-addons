@@ -1,8 +1,28 @@
 # Changelog
 
+## 0.2.46.1
+
+### Fixed
+
+- The add-on could not start: mapping the `LOG_LEVEL` option into the s6
+  container environment collided with bashio, which reads the same variable
+  name as its own numeric log level. Its arithmetic comparison then failed with
+  `warn: unbound variable`, and since bashio runs with `set -o nounset
+  -o errexit`, the service script died on its first log line and s6 restarted
+  it in a loop. The value is now carried as `HAWSER_LOG_LEVEL` and translated
+  back immediately before the agent is executed. `env_vars` can no longer set
+  `LOG_LEVEL` either.
+
+### Changed
+
+- Moved the `user` bundle to `/etc/s6-overlay/user-bundles.d`, as required
+  since s6-overlay 3.2.3.2. Removes the deprecation warning printed on every
+  start.
+
 ## 0.2.46
 
-The add-on version now tracks the packaged upstream Hawser version.
+The add-on version now tracks the packaged upstream Hawser version. Add-on
+changes that do not move upstream get a fourth component, e.g. `0.2.46.1`.
 
 ### Security
 
