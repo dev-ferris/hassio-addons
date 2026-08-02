@@ -1,14 +1,31 @@
 #include <tunables/global>
 
-profile hawser_addon flags=(attach_disconnected,mediate_deleted) {
+# The profile name must match the add-on slug; the Supervisor rewrites it
+# otherwise, but keeping them in sync avoids surprises.
+profile hawser flags=(attach_disconnected,mediate_deleted) {
   #include <abstractions/base>
 
-  capability,
+  # Capabilities.
+  # Deliberately enumerated instead of the blanket `capability,` rule: the
+  # add-on runs unprivileged and only needs what s6-overlay, bashio and the
+  # Docker CLI actually use. Granting every capability made the profile
+  # decorative rather than confining.
+  capability chown,
+  capability dac_override,
+  capability dac_read_search,
+  capability fowner,
+  capability fsetid,
+  capability kill,
+  capability net_bind_service,
+  capability setgid,
+  capability setuid,
+
   file,
   signal,
-  mount,
-  umount,
-  remount,
+
+  # No `mount`, `umount` or `remount`: the agent talks to the Docker daemon
+  # over the socket, it never manipulates the host's mount table itself.
+
   network udp,
   network tcp,
   network dgram,
@@ -17,11 +34,10 @@ profile hawser_addon flags=(attach_disconnected,mediate_deleted) {
   network inet6,
   network netlink raw,
   network unix dgram,
-  capability setgid,
-  capability setuid,
+  network unix stream,
 
   # S6-Overlay
-  /init ix,
+  /init rix,
   /run/{s6,s6-rc*,service}/** ix,
   /package/** ix,
   /command/** ix,
@@ -32,15 +48,18 @@ profile hawser_addon flags=(attach_disconnected,mediate_deleted) {
   /usr/local/bin/** ix,
   /usr/lib/bashio/** ix,
   /etc/s6/** rix,
+  /etc/s6-overlay/** rix,
   /run/s6/** rix,
   /etc/services.d/** rwix,
   /etc/cont-init.d/** rwix,
   /etc/cont-finish.d/** rwix,
-  /init rix,
   /var/run/** mrwkl,
   /var/run/ mrwkl,
 
-  # Data access
+  # Docker CLI and the compose plugin
+  /usr/libexec/docker/cli-plugins/** ix,
+
+  # Data access (options.json, persisted agent ID and compose stacks)
   /data/** rw,
 
   # Suppress ptrace denials when interacting with docker

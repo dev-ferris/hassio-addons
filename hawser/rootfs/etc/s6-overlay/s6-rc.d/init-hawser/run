@@ -1,0 +1,210 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Home Assistant Add-on: Hawser
+# Validates the configuration and prepares the runtime environment
+#
+# Everything written to the s6 container environment here is picked up by the
+# `hawser` service (and by anything else started with-contenv afterwards).
+# ==============================================================================
+declare -r ENV_DIR="/var/run/s6/container_environment"
+declare -r STACKS_DIR="/data/stacks"
+declare -r AGENT_ID_FILE="/data/agent_id"
+
+# Environment variables that must never be overridden through `env_vars`.
+# Overwriting these would let a configuration option change how the add-on
+# itself is executed, not just how Hawser behaves.
+declare -r -a PROTECTED_ENV=(
+    PATH LD_PRELOAD LD_LIBRARY_PATH LD_AUDIT HOME
+    SUPERVISOR_TOKEN HASSIO_TOKEN
+)
+
+# ------------------------------------------------------------------------------
+# Publishes a variable to the s6 container environment.
+# ------------------------------------------------------------------------------
+function publish_env() {
+    local name="${1}"
+    local value="${2}"
+    printf '%s' "${value}" > "${ENV_DIR}/${name}"
+}
+
+# ------------------------------------------------------------------------------
+# Publishes a string/number option when the user actually set it, so that
+# Hawser's own defaults stay in charge for everything left empty.
+# ------------------------------------------------------------------------------
+function publish_option() {
+    local key="${1}"
+    if bashio::config.has_value "${key}"; then
+        publish_env "${key}" "$(bashio::config "${key}")"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Publishes a boolean option only when enabled (Hawser defaults to false).
+# ------------------------------------------------------------------------------
+function publish_flag() {
+    local key="${1}"
+    if bashio::config.true "${key}"; then
+        publish_env "${key}" "true"
+    fi
+}
+
+# ------------------------------------------------------------------------------
+# Returns success if the given bind address only accepts local connections.
+# ------------------------------------------------------------------------------
+function is_loopback() {
+    local address="${1}"
+    [[ "${address}" == "localhost" || "${address}" == "127."* || "${address}" == "::1" ]]
+}
+
+# ==============================================================================
+# Configuration mapping
+# ==============================================================================
+for option in PORT LOG_LEVEL BIND_ADDRESS TOKEN AGENT_NAME DOCKHAND_SERVER_URL \
+    TLS_CERT TLS_KEY CA_CERT HEARTBEAT_INTERVAL REQUEST_TIMEOUT \
+    RECONNECT_DELAY MAX_RECONNECT_DELAY WELCOME_TIMEOUT; do
+    publish_option "${option}"
+done
+
+publish_flag 'TLS_SKIP_VERIFY'
+publish_flag 'ALLOW_INSECURE_NO_AUTH'
+
+declare port bind_address
+port=$(bashio::config 'PORT' '2376')
+bind_address=$(bashio::config 'BIND_ADDRESS' '0.0.0.0')
+
+# ==============================================================================
+# Validation - fail loudly here instead of crash-looping inside Hawser
+# ==============================================================================
+if bashio::config.has_value 'DOCKHAND_SERVER_URL'; then
+    declare server_url
+    server_url=$(bashio::config 'DOCKHAND_SERVER_URL')
+
+    if ! bashio::config.has_value 'TOKEN'; then
+        bashio::log.fatal \
+            "Edge mode is enabled (DOCKHAND_SERVER_URL is set) but TOKEN is empty."
+        bashio::log.fatal \
+            "Set the same token that is configured for this agent in Dockhand."
+        bashio::exit.nok
+    fi
+
+    if [[ "${server_url}" != "ws://"* && "${server_url}" != "wss://"* ]]; then
+        bashio::exit.nok \
+            "DOCKHAND_SERVER_URL must start with ws:// or wss://, got: ${server_url}"
+    fi
+
+    if [[ "${server_url}" == "ws://"* ]]; then
+        bashio::log.warning \
+            "DOCKHAND_SERVER_URL uses ws:// - the connection, including the" \
+            "token, is not encrypted. Use wss:// whenever possible."
+    fi
+elif ! bashio::config.has_value 'TOKEN' \
+    && ! is_loopback "${bind_address}" \
+    && ! bashio::config.true 'ALLOW_INSECURE_NO_AUTH'; then
+    bashio::log.fatal \
+        "Refusing to start: Standard mode is bound to ${bind_address} without a TOKEN."
+    bashio::log.fatal \
+        "Hawser forwards every request straight to the Docker socket, so this would" \
+        "hand out root-equivalent access to anyone who can reach port ${port}."
+    bashio::log.fatal \
+        "Set TOKEN, or set BIND_ADDRESS to 127.0.0.1, or - if you really know what" \
+        "you are doing - enable ALLOW_INSECURE_NO_AUTH."
+    bashio::exit.nok
+fi
+
+# TLS certificate and key only work as a pair
+if bashio::config.has_value 'TLS_CERT' && ! bashio::config.has_value 'TLS_KEY'; then
+    bashio::exit.nok "TLS_CERT is set but TLS_KEY is empty - both are required."
+fi
+if bashio::config.has_value 'TLS_KEY' && ! bashio::config.has_value 'TLS_CERT'; then
+    bashio::exit.nok "TLS_KEY is set but TLS_CERT is empty - both are required."
+fi
+
+# Referenced certificates have to be readable inside the add-on
+for cert_option in TLS_CERT TLS_KEY CA_CERT; do
+    if bashio::config.has_value "${cert_option}"; then
+        cert_path=$(bashio::config "${cert_option}")
+        if ! bashio::fs.file_exists "${cert_path}"; then
+            bashio::log.fatal \
+                "${cert_option} points to ${cert_path}, which does not exist" \
+                "inside the add-on."
+            bashio::log.fatal \
+                "Certificates belong in the Home Assistant 'ssl' share and are" \
+                "referenced as /ssl/<file>."
+            bashio::exit.nok
+        fi
+    fi
+done
+
+# ==============================================================================
+# Warnings - valid, but worth pointing out
+# ==============================================================================
+if ! bashio::config.has_value 'DOCKHAND_SERVER_URL' \
+    && ! bashio::config.has_value 'TLS_CERT'; then
+    bashio::log.warning \
+        "Standard mode is running without TLS. The token is sent in clear text" \
+        "on every request - configure TLS_CERT and TLS_KEY on untrusted networks."
+fi
+
+if bashio::config.true 'TLS_SKIP_VERIFY'; then
+    bashio::log.warning \
+        "TLS_SKIP_VERIFY is enabled. Server certificates are not verified," \
+        "which allows man-in-the-middle attacks. Use this for testing only."
+fi
+
+if bashio::config.true 'ALLOW_INSECURE_NO_AUTH'; then
+    bashio::log.warning \
+        "ALLOW_INSECURE_NO_AUTH is enabled - the Docker API is exposed without" \
+        "any authentication. Anyone who can reach port ${port} controls this host."
+fi
+
+if [[ "${port}" != "2376" ]] || is_loopback "${bind_address}"; then
+    bashio::log.warning \
+        "The add-on Watchdog probes tcp://<add-on>:2376. With PORT=${port} and" \
+        "BIND_ADDRESS=${bind_address} that probe fails - turn the Watchdog off" \
+        "on the add-on's Info tab to avoid restart loops."
+fi
+
+# ==============================================================================
+# Runtime preparation
+# ==============================================================================
+
+# Stacks live in /data so they survive add-on updates
+mkdir -p "${STACKS_DIR}"
+publish_env 'STACKS_DIR' "${STACKS_DIR}"
+
+# Hawser generates a random agent ID on every start unless AGENT_ID is set,
+# which makes the agent show up as a new host in Dockhand after each restart.
+# Persist one in /data instead.
+if ! bashio::fs.file_exists "${AGENT_ID_FILE}"; then
+    cat /proc/sys/kernel/random/uuid > "${AGENT_ID_FILE}"
+    chmod 600 "${AGENT_ID_FILE}"
+    bashio::log.info "Generated a persistent agent ID"
+fi
+publish_env 'AGENT_ID' "$(<"${AGENT_ID_FILE}")"
+
+# ==============================================================================
+# Additional user-supplied environment variables
+# ==============================================================================
+if bashio::config.has_value 'env_vars'; then
+    for var in $(bashio::config 'env_vars|keys'); do
+        name=$(bashio::config "env_vars[${var}].name")
+        value=$(bashio::config "env_vars[${var}].value")
+
+        for protected in "${PROTECTED_ENV[@]}"; do
+            if [[ "${name}" == "${protected}" ]]; then
+                bashio::exit.nok \
+                    "Refusing to set the protected environment variable ${name}."
+            fi
+        done
+
+        bashio::log.info "Setting custom environment variable: ${name}"
+        publish_env "${name}" "${value}"
+    done
+fi
+
+if bashio::config.has_value 'DOCKHAND_SERVER_URL'; then
+    bashio::log.info "Mode: Edge (outbound WebSocket to Dockhand)"
+else
+    bashio::log.info "Mode: Standard (listening on ${bind_address}:${port})"
+fi
