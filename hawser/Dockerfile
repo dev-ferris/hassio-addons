@@ -15,11 +15,16 @@ FROM ${BUILD_FROM}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Docker CLI + compose plugin so the agent can drive containers and stacks.
+# buildx is needed for stacks that use `build:`: without the plugin, Compose
+# falls back to the classic daemon builder, which rejects BuildKit features
+# such as build secrets, additional contexts and SSH forwarding. The upstream
+# Hawser image ships it for the same reason.
 # ca-certificates is needed to verify the Dockhand server in Edge mode.
 # bash, curl, jq and tzdata already ship with the add-on base image.
 RUN apk add --no-cache \
         ca-certificates \
         docker-cli \
+        docker-cli-buildx \
         docker-cli-compose
 
 # Copy the Hawser binary from the upstream image
@@ -28,13 +33,20 @@ COPY --from=upstream /usr/local/bin/hawser /usr/local/bin/hawser
 # s6-overlay service definitions
 COPY rootfs/ /
 
+# The empty user-bundles.d/user2/contents.d is created here rather than shipped
+# in rootfs/: s6-overlay's own `top` bundle references user2, so it has to exist
+# even though this add-on starts nothing late - but git cannot track an empty
+# directory, and a placeholder file inside contents.d would be read as a
+# service name.
 RUN chmod a+x \
         /usr/local/bin/hawser \
         /usr/bin/hawser-health \
         /etc/s6-overlay/s6-rc.d/hawser/run \
         /etc/s6-overlay/s6-rc.d/hawser/finish \
         /etc/s6-overlay/s6-rc.d/init-hawser/run \
-    && mkdir -p /data/stacks
+    && mkdir -p \
+        /data/stacks \
+        /etc/s6-overlay/user-bundles.d/user2/contents.d
 
 ENV DOCKER_SOCKET=/run/docker.sock \
     STACKS_DIR=/data/stacks
