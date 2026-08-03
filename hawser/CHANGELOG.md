@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.46.2
+
+### Added
+
+- `docker-cli-buildx`. Hawser can run `docker compose up --build`, and without
+  the buildx plugin Compose falls back to the classic daemon builder, which
+  refuses build secrets, additional build contexts, SSH forwarding and
+  multi-arch builds. The upstream Hawser image ships buildx for the same
+  reason; this add-on had been missing it since the first release.
+
+### Documentation
+
+- Explained that bind mount paths in compose stacks are resolved by the Docker
+  daemon on the host, not inside the add-on, so they have to be host paths.
+
 ## 0.2.46.1
 
 ### Fixed

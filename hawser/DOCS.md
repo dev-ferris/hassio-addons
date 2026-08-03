@@ -106,6 +106,19 @@ TLS_KEY: /ssl/hawser.key
 The add-on checks at startup that the referenced files exist and stops with a
 clear message if they do not.
 
+## Compose stacks
+
+Stack files sent by Dockhand are written to `/data/stacks` and Compose runs
+there. Note that the Compose *client* runs inside the add-on while the Docker
+*daemon* runs on the host: bind mount sources in a stack are therefore resolved
+against the host filesystem, not against the add-on's. Use absolute host paths
+(for example `/mnt/data/supervisor/share/...` on Home Assistant OS) rather than
+relative ones or `/share`.
+
+Stacks that use `build:` work as well; the image contains the buildx plugin, so
+BuildKit features such as build secrets and additional build contexts are
+available.
+
 ## Persistent state
 
 - **Compose stacks** are stored in `/data/stacks` and survive add-on updates.

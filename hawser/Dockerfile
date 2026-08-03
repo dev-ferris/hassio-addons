@@ -15,11 +15,16 @@ FROM ${BUILD_FROM}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Docker CLI + compose plugin so the agent can drive containers and stacks.
+# buildx is needed for stacks that use `build:`: without the plugin, Compose
+# falls back to the classic daemon builder, which rejects BuildKit features
+# such as build secrets, additional contexts and SSH forwarding. The upstream
+# Hawser image ships it for the same reason.
 # ca-certificates is needed to verify the Dockhand server in Edge mode.
 # bash, curl, jq and tzdata already ship with the add-on base image.
 RUN apk add --no-cache \
         ca-certificates \
         docker-cli \
+        docker-cli-buildx \
         docker-cli-compose
 
 # Copy the Hawser binary from the upstream image

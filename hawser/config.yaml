@@ -1,6 +1,6 @@
 ---
 name: Hawser
-version: "0.2.46.1"
+version: "0.2.46.2"
 slug: hawser
 description: Lightweight Go agent enabling Dockhand to manage Docker hosts
 url: https://github.com/dev-ferris/hassio-addons/tree/main/hawser
