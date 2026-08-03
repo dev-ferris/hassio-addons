@@ -113,6 +113,26 @@ if bashio::config.has_value 'DOCKHAND_SERVER_URL'; then
 elif ! bashio::config.has_value 'TOKEN' \
     && ! is_loopback "${bind_address}" \
     && ! bashio::config.true 'ALLOW_INSECURE_NO_AUTH'; then
+
+    # Neither of the two options that select a mode is set, so this is almost
+    # always an add-on that was never configured (or whose options were lost,
+    # for example after a reinstall) - not somebody deliberately running an
+    # open Standard mode listener. Say so, instead of only talking about a
+    # mode the user may never have wanted.
+    if ! bashio::config.has_value 'DOCKHAND_SERVER_URL'; then
+        bashio::log.fatal "This add-on has not been configured yet."
+        bashio::log.fatal \
+            "Neither TOKEN nor DOCKHAND_SERVER_URL is set, so there is no way to" \
+            "reach Dockhand and no way to authenticate it."
+        bashio::log.fatal ""
+        bashio::log.fatal "Open the add-on's Configuration tab and set:"
+        bashio::log.fatal \
+            "  - Edge mode:     DOCKHAND_SERVER_URL (wss://...) and TOKEN"
+        bashio::log.fatal \
+            "  - Standard mode: TOKEN (Dockhand connects to this host)"
+        bashio::exit.nok
+    fi
+
     bashio::log.fatal \
         "Refusing to start: Standard mode is bound to ${bind_address} without a TOKEN."
     bashio::log.fatal \

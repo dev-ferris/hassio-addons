@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.46.3
+
+### Changed
+
+- Clearer error when the add-on has not been configured yet. Previously an
+  empty configuration produced a message about Standard mode being exposed
+  without a token, which is confusing for anyone who meant to use Edge mode.
+  It now says that the add-on is unconfigured and names the options both modes
+  need.
+
 ## 0.2.46.2
 
 ### Added
