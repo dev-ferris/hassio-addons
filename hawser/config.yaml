@@ -1,6 +1,6 @@
 ---
 name: Hawser
-version: "0.2.46.2"
+version: "0.2.46.3"
 slug: hawser
 description: Lightweight Go agent enabling Dockhand to manage Docker hosts
 url: https://github.com/dev-ferris/hassio-addons/tree/main/hawser
@@ -38,6 +38,7 @@ options:
   RECONNECT_DELAY: 1
   MAX_RECONNECT_DELAY: 60
   WELCOME_TIMEOUT: 30
+  hosts_entries: []
   env_vars: []
 schema:
   PORT: port
@@ -56,6 +57,9 @@ schema:
   RECONNECT_DELAY: int(1,3600)?
   MAX_RECONNECT_DELAY: int(1,3600)?
   WELCOME_TIMEOUT: int(1,3600)?
+  hosts_entries:
+    - name: match(^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?$)
+      ip: match(^[0-9A-Fa-f.:]+$)
   env_vars:
     - name: match(^[A-Za-z_][A-Za-z0-9_]*$)
       value: str?

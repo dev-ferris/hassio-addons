@@ -65,6 +65,13 @@ configuration:
     description: >-
       How long to wait for the Dockhand server's welcome message after
       connecting, in seconds (Edge mode).
+  hosts_entries:
+    name: Static host entries
+    description: >-
+      Name-to-IP mappings written to /etc/hosts inside the add-on. Use this
+      when the Dockhand server is only known to your local DNS, for example
+      under a .home or .lan domain, which the Home Assistant DNS service
+      cannot resolve.
   env_vars:
     name: Additional environment variables
     description: >-

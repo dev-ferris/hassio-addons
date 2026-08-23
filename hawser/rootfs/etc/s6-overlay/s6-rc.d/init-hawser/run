@@ -59,6 +59,99 @@ function is_loopback() {
     [[ "${address}" == "localhost" || "${address}" == "127."* || "${address}" == "::1" ]]
 }
 
+# ------------------------------------------------------------------------------
+# Prints the host part of a ws:// or wss:// URL, without userinfo, port or path.
+# IPv6 literals are returned without their brackets.
+# ------------------------------------------------------------------------------
+function url_host() {
+    local rest="${1#*://}"
+    rest="${rest%%/*}"
+    rest="${rest##*@}"
+    if [[ "${rest}" == \[*\]* ]]; then
+        rest="${rest#\[}"
+        rest="${rest%%\]*}"
+    else
+        rest="${rest%%:*}"
+    fi
+    printf '%s' "${rest}"
+}
+
+# ------------------------------------------------------------------------------
+# Returns success if the argument is an IP address rather than a name, i.e. if
+# it needs no name resolution at all.
+# ------------------------------------------------------------------------------
+function is_ip_literal() {
+    [[ "${1}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || "${1}" == *:* ]]
+}
+
+# ------------------------------------------------------------------------------
+# Returns success if the given name can be resolved from inside the add-on.
+# Falls back to success when the image carries no resolver tool at all - the
+# check exists to produce a helpful message, never to block a working setup.
+# ------------------------------------------------------------------------------
+function name_resolves() {
+    local name="${1}"
+
+    # /etc/hosts wins over DNS for Hawser too, and the busybox `nslookup`
+    # fallback further down only ever asks the resolver, so check the file
+    # itself first.
+    if grep -qiE "^[^#]*[[:space:]]${name}([[:space:]]|\$)" /etc/hosts 2>/dev/null
+    then
+        return 0
+    fi
+
+    if command -v getent > /dev/null 2>&1; then
+        getent hosts "${name}" > /dev/null 2>&1
+        return
+    fi
+
+    if command -v nslookup > /dev/null 2>&1; then
+        nslookup "${name}" > /dev/null 2>&1
+        return
+    fi
+
+    return 0
+}
+
+# ------------------------------------------------------------------------------
+# Appends the configured hosts_entries to /etc/hosts.
+#
+# Add-ons cannot ask the Supervisor for Docker's `extra_hosts`, and add-on
+# containers resolve through Docker's embedded resolver and the Home Assistant
+# DNS service, which commonly does not know local-only domains such as .home
+# or .lan. A static entry is the way out that does not require reconfiguring
+# name resolution for the whole Home Assistant installation.
+# ------------------------------------------------------------------------------
+function apply_hosts_entries() {
+    local entry name ip
+
+    bashio::config.has_value 'hosts_entries' || return 0
+
+    for entry in $(bashio::config 'hosts_entries|keys'); do
+        name=$(bashio::config "hosts_entries[${entry}].name")
+        ip=$(bashio::config "hosts_entries[${entry}].ip")
+
+        # The schema already constrains both fields; this second check keeps
+        # anything that could add a line of its own out of /etc/hosts.
+        if [[ ! "${name}" =~ ^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9])?$ ]]; then
+            bashio::exit.nok "Invalid host name in hosts_entries: ${name}"
+        fi
+        if ! is_ip_literal "${ip}"; then
+            bashio::exit.nok \
+                "hosts_entries entry for ${name} needs an IP address, got: ${ip}"
+        fi
+
+        if ! printf '%s\t%s\n' "${ip}" "${name}" >> /etc/hosts; then
+            bashio::log.warning \
+                "Could not write ${name} to /etc/hosts - name resolution for it" \
+                "falls back to DNS."
+            continue
+        fi
+
+        bashio::log.info "Mapped ${name} to ${ip} in /etc/hosts"
+    done
+}
+
 # ==============================================================================
 # Configuration mapping
 # ==============================================================================
@@ -86,6 +179,12 @@ port=$(bashio::config 'PORT' '2376')
 bind_address=$(bashio::config 'BIND_ADDRESS' '0.0.0.0')
 
 # ==============================================================================
+# Name resolution
+# ==============================================================================
+# Applied before the checks below, so the pre-flight resolution test sees it.
+apply_hosts_entries
+
+# ==============================================================================
 # Validation - fail loudly here instead of crash-looping inside Hawser
 # ==============================================================================
 if bashio::config.has_value 'DOCKHAND_SERVER_URL'; then
@@ -109,6 +208,33 @@ if bashio::config.has_value 'DOCKHAND_SERVER_URL'; then
         bashio::log.warning \
             "DOCKHAND_SERVER_URL uses ws:// - the connection, including the" \
             "token, is not encrypted. Use wss:// whenever possible."
+    fi
+
+    # Pre-flight name resolution. Hawser otherwise only reports the raw resolver
+    # error ("server misbehaving") once per reconnect attempt, which says
+    # nothing about where the name was supposed to come from. Not fatal: DNS can
+    # come back later and Hawser reconnects on its own.
+    declare server_host
+    server_host=$(url_host "${server_url}")
+
+    if [[ -n "${server_host}" ]] && ! is_ip_literal "${server_host}" \
+        && ! name_resolves "${server_host}"; then
+        bashio::log.warning \
+            "Cannot resolve '${server_host}' from inside the add-on."
+        bashio::log.warning \
+            "Add-ons resolve names through Docker's embedded resolver and the" \
+            "Home Assistant DNS service, which usually does not know local-only" \
+            "domains such as .home, .lan or .fritz.box."
+        bashio::log.warning "Any one of these fixes it:"
+        bashio::log.warning \
+            "  - put the server's IP address into DOCKHAND_SERVER_URL, or"
+        bashio::log.warning \
+            "  - add {name: ${server_host}, ip: <address>} to the" \
+            "'hosts_entries' option, or"
+        bashio::log.warning \
+            "  - point Home Assistant at the DNS server that knows the name:" \
+            "'ha dns options --servers dns://<your-dns-ip>' followed by" \
+            "'ha dns restart' on the host."
     fi
 elif ! bashio::config.has_value 'TOKEN' \
     && ! is_loopback "${bind_address}" \

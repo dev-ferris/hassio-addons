@@ -67,6 +67,7 @@ REQUEST_TIMEOUT: 30
 RECONNECT_DELAY: 1
 MAX_RECONNECT_DELAY: 60
 WELCOME_TIMEOUT: 30
+hosts_entries: []
 env_vars: []
 ```
 
@@ -87,11 +88,54 @@ env_vars: []
 | `RECONNECT_DELAY`        | Initial reconnect delay in seconds (Edge mode).                                               |
 | `MAX_RECONNECT_DELAY`    | Maximum reconnect delay in seconds (Edge mode).                                               |
 | `WELCOME_TIMEOUT`        | Seconds to wait for the server's welcome message after connecting (Edge mode).                |
+| `hosts_entries`          | List of `{name, ip}` pairs written to `/etc/hosts`. See *Name resolution*.                    |
 | `env_vars`               | List of `{name, value}` pairs forwarded as environment variables.                             |
 
 Options left empty keep Hawser's own defaults. `env_vars` cannot override
 variables that control the add-on itself (`PATH`, `LD_PRELOAD`,
 `SUPERVISOR_TOKEN`, and similar) — the add-on refuses to start instead.
+
+## Name resolution
+
+Add-ons do not use the host's `/etc/resolv.conf`. They resolve names through
+Docker's embedded resolver (`127.0.0.11`), which forwards to the Home Assistant
+DNS service, which in turn forwards to its configured upstream servers. Local-
+only domains — `.home`, `.lan`, `.fritz.box`, names your router or Pi-hole
+hands out — are frequently unknown up there, and the failure shows up in the
+log as a reconnect loop:
+
+```text
+Connection failed: WebSocket dial failed: dial tcp:
+lookup dockhand.home on 127.0.0.11:53: server misbehaving
+```
+
+The add-on checks the host in `DOCKHAND_SERVER_URL` at startup and prints an
+explicit warning when it cannot be resolved. Three ways to fix it, cheapest
+first:
+
+1. **Use the IP address** in `DOCKHAND_SERVER_URL`:
+   `ws://192.168.1.20:3000/api/hawser/connect`. Note that a `wss://`
+   certificate is usually issued for the name, not the address.
+2. **Map the name statically** with `hosts_entries`. The pairs are appended to
+   `/etc/hosts` inside the add-on, which takes precedence over DNS:
+
+   ```yaml
+   DOCKHAND_SERVER_URL: ws://dockhand.home:3000/api/hawser/connect
+   hosts_entries:
+     - name: dockhand.home
+       ip: 192.168.1.20
+   ```
+
+3. **Teach Home Assistant about your local DNS server**, which fixes it for
+   every add-on at once. On the host:
+
+   ```shell
+   ha dns options --servers dns://192.168.1.1
+   ha dns restart
+   ```
+
+   Replace the address with your router or local DNS server. `ha dns info`
+   shows the current setting.
 
 ## TLS certificates
 

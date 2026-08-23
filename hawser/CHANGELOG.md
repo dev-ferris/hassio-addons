@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.46.3
+
+### Added
+
+- `hosts_entries`, a list of `{name, ip}` pairs written to `/etc/hosts` inside
+  the add-on. Add-ons resolve names through Docker's embedded resolver and the
+  Home Assistant DNS service, which typically does not know local-only domains
+  such as `.home` or `.lan`, and an add-on cannot ask the Supervisor for
+  Docker's `extra_hosts`. Edge mode against a Dockhand server that only exists
+  in the local DNS therefore failed with `lookup <host> on 127.0.0.11:53:
+  server misbehaving` on every reconnect.
+- A startup check that resolves the host in `DOCKHAND_SERVER_URL` and, when it
+  fails, names the cause and the three possible fixes instead of leaving the
+  bare resolver error to repeat in the reconnect loop. The check only warns —
+  DNS can recover, and Hawser reconnects by itself.
+
+### Documentation
+
+- New *Name resolution* section describing how add-on DNS works and how to
+  point Home Assistant at a local DNS server with `ha dns options`.
+
 ## 0.2.46.2
 
 ### Added
